@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - uses: oven-sh/setup-bun@v2
         with:
@@ -25,13 +25,13 @@ jobs:
       - name: Verify Bun import
         run: bun -e "import { Rivetplane } from './dist/index.js'; if (!new Rivetplane({baseUrl:'https://example.test', authentication:'test'}).sessions) process.exit(1)"
 
-  node-18:
+  node-24:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: 18
+          node-version: 24
           cache: npm
       - run: npm ci
       - run: npm test

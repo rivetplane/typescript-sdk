@@ -1,6 +1,6 @@
 # @rivetplane/sdk
 
-The first-party TypeScript SDK for the Rivetplane control-plane API. It uses standard `fetch`, streams SSE without `EventSource`, and uses the standard `WebSocket` API. The same package works in Node.js 18 or later, Bun, and modern browsers.
+The first-party TypeScript SDK for the Rivetplane control-plane API. It uses standard `fetch`, streams SSE without `EventSource`, and uses the standard `WebSocket` API. The same package works in Node.js 24 or later, Bun, and modern browsers.
 
 ## Install
 
@@ -64,7 +64,7 @@ for await (const event of rivetplane.events({
 }
 ```
 
-Node.js 18 through 21 does not provide a global WebSocket. REST and SSE work without a polyfill. For account events, pass a WHATWG-compatible WebSocket constructor in `options.webSocket`. Node.js 22, Bun, and browsers provide one.
+Node.js 24, Bun, and modern browsers provide the required WebSocket implementation. You can also pass a WHATWG-compatible WebSocket constructor in `options.webSocket`.
 
 ## Errors
 
