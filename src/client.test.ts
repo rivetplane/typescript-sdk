@@ -35,4 +35,17 @@ describe("Rivetplane REST client", () => {
     const client = new Rivetplane({ baseUrl: "https://example.test", authentication: "token", fetch: async () => json({ error: "stale pending_id" }, 409) });
     await assert.rejects(client.sessions.interrupt("s"), (error: unknown) => error instanceof RivetplaneApiError && error.status === 409 && error.body !== undefined && !error.retryable);
   });
+
+  it("uses the production server and sends session pagination filters", async () => {
+    let requested: URL | undefined;
+    const client = new Rivetplane({ authentication: "token", fetch: async (input) => {
+      requested = new URL(String(input));
+      return json([]);
+    }});
+    await client.sessions.list({ before: "2026-08-26T10:15:00Z", limit: 20 });
+    assert.equal(requested?.origin, "https://rivetplane.com");
+    assert.equal(requested?.searchParams.get("before"), "2026-08-26T10:15:00Z");
+    assert.equal(requested?.searchParams.get("limit"), "20");
+    await assert.rejects(async () => client.sessions.list({ limit: 0 }), RangeError);
+  });
 });

@@ -6,7 +6,7 @@ import type { CommandAccepted, CreateSessionInput, HarnessCapabilities, Machine,
 import { connectEventStream, type EventSocketOptions } from "./websocket.js";
 
 export interface RivetplaneOptions {
-  baseUrl: string | URL;
+  baseUrl?: string | URL;
   authentication: Authentication;
   fetch?: typeof fetch;
   headers?: HeadersInit;
@@ -27,7 +27,7 @@ export class Rivetplane {
   private readonly headers: Headers;
 
   constructor(options: RivetplaneOptions) {
-    this.baseUrl = new URL(options.baseUrl);
+    this.baseUrl = new URL(options.baseUrl ?? "https://rivetplane.com");
     if (!this.baseUrl.pathname.endsWith("/")) this.baseUrl.pathname += "/";
     this.authentication = options.authentication;
     this.fetcher = options.fetch ?? globalThis.fetch;
@@ -77,7 +77,10 @@ export class Rivetplane {
 
 export class SessionsResource {
   constructor(private readonly client: Rivetplane) {}
-  list(filter: SessionListFilter = {}, options: RequestOptions = {}): Promise<Session[]> { return this.client.request("GET", "v1/sessions", { ...options, query: { machine: filter.machine, harness: filter.harness, status: filter.status, cwd: filter.cwd } }); }
+  list(filter: SessionListFilter = {}, options: RequestOptions = {}): Promise<Session[]> {
+    if (filter.limit !== undefined && (!Number.isInteger(filter.limit) || filter.limit < 1 || filter.limit > 1_000)) throw new RangeError("limit must be an integer from 1 to 1000");
+    return this.client.request("GET", "v1/sessions", { ...options, query: { machine: filter.machine, harness: filter.harness, status: filter.status, cwd: filter.cwd, before: filter.before, limit: filter.limit } });
+  }
   get(sessionId: string, options: RequestOptions = {}): Promise<Session> { return this.client.request("GET", `v1/sessions/${encode(sessionId)}`, options); }
   transcript(sessionId: string, options: TranscriptPageOptions = {}): Promise<TranscriptPage> { return this.client.request("GET", `v1/sessions/${encode(sessionId)}/transcript`, { signal: options.signal, query: { since: options.since, limit: options.limit, cursor: options.cursor } }); }
   async *transcriptPages(sessionId: string, options: TranscriptPageOptions = {}): AsyncGenerator<TranscriptPage> { let cursor = options.cursor; do { const page = await this.transcript(sessionId, { ...options, cursor }); yield page; cursor = page.next_cursor ?? undefined; } while (cursor); }

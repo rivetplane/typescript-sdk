@@ -93,13 +93,17 @@ export interface HarnessCapabilities {
   machine_id: string;
   harness_type: string;
   can_create_session: boolean;
+  can_send_message?: boolean;
+  can_interrupt?: boolean;
+  can_respond_to_approval?: boolean;
+  can_respond_to_question?: boolean;
   directories: string[];
   models: HarnessModel[];
   default_model?: { provider_id: string; model_id: string };
   reported_at: Timestamp;
 }
 
-export interface SessionListFilter { machine?: string; harness?: string; status?: SessionStatus; cwd?: string }
+export interface SessionListFilter { machine?: string; harness?: string; status?: SessionStatus; cwd?: string; before?: Timestamp; limit?: number }
 export interface TranscriptPage { events: TranscriptEvent[]; next_cursor: string | null }
 export interface TranscriptPageOptions { since?: Timestamp; limit?: number; cursor?: string; signal?: AbortSignal }
 export interface CreateSessionInput { cwd: string; title?: string; model: { provider_id: string; model_id: string } }

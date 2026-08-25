@@ -14,7 +14,6 @@ npm install @rivetplane/sdk
 import { Rivetplane } from "@rivetplane/sdk";
 
 const rivetplane = new Rivetplane({
-  baseUrl: "https://control.rivetplane.dev",
   authentication: process.env.RIVETPLANE_TOKEN!,
 });
 
@@ -37,6 +36,14 @@ const rivetplane = new Rivetplane({
   baseUrl: "http://127.0.0.1:8080",
   authentication: async () => tokenStore.current(),
 });
+```
+
+The default server is `https://rivetplane.com`. Set `baseUrl` only for a self-hosted server or the local runner API.
+
+Session lists support stable time-based pagination:
+
+```ts
+const sessions = await rivetplane.sessions.list({ before: new Date().toISOString(), limit: 100 });
 ```
 
 ## Pagination and streaming
