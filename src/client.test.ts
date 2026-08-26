@@ -36,16 +36,52 @@ describe("Rivetplane REST client", () => {
     await assert.rejects(client.sessions.interrupt("s"), (error: unknown) => error instanceof RivetplaneApiError && error.status === 409 && error.body !== undefined && !error.retryable);
   });
 
-  it("uses the production server and sends session pagination filters", async () => {
+  it("listSessions returns optional session identity fields", async () => {
     let requested: URL | undefined;
     const client = new Rivetplane({ authentication: "token", fetch: async (input) => {
       requested = new URL(String(input));
-      return json([]);
+      return json([{ id: "runner/codex/session", machine_id: "runner", harness_type: "codex", cwd: "/repo", title: "Repair deployment", model: { provider_id: "openai", model_id: "gpt-5.4" }, agent: "default", read_only: false, metadata: { source: "app-server" }, status: "running", created_at: "2026-08-26T10:00:00Z", last_activity_at: "2026-08-26T10:15:00Z", pending: null }]);
     }});
-    await client.sessions.list({ before: "2026-08-26T10:15:00Z", limit: 20 });
+    const [session] = await client.listSessions({ before: "2026-08-26T10:15:00Z", limit: 20 });
     assert.equal(requested?.origin, "https://rivetplane.com");
     assert.equal(requested?.searchParams.get("before"), "2026-08-26T10:15:00Z");
     assert.equal(requested?.searchParams.get("limit"), "20");
-    await assert.rejects(async () => client.sessions.list({ limit: 0 }), RangeError);
+    assert.equal(session?.title, "Repair deployment");
+    assert.deepEqual(session?.model, { provider_id: "openai", model_id: "gpt-5.4" });
+    assert.equal(session?.agent, "default");
+    assert.equal(session?.read_only, false);
+    assert.deepEqual(session?.metadata, { source: "app-server" });
+    await assert.rejects(async () => client.listSessions({ limit: 0 }), RangeError);
+  });
+
+  it("getSession returns optional session identity fields", async () => {
+    let requested: URL | undefined;
+    const client = new Rivetplane({ baseUrl: "https://example.test", authentication: "token", fetch: async (input) => {
+      requested = new URL(String(input));
+      return json({ id: "runner/claude/session", machine_id: "runner", harness_type: "claude-code", cwd: "/repo", title: "Review API", model: { provider_id: "anthropic", model_id: "claude-sonnet-4-6" }, agent: "review", read_only: true, metadata: { transcript_source: "jsonl" }, status: "waiting_input", created_at: "2026-08-26T10:00:00Z", last_activity_at: "2026-08-26T10:15:00Z", pending: null });
+    }});
+    const session = await client.getSession("runner/claude/session");
+    assert.match(requested!.pathname, /runner%2Fclaude%2Fsession$/);
+    assert.equal(session.title, "Review API");
+    assert.deepEqual(session.model, { provider_id: "anthropic", model_id: "claude-sonnet-4-6" });
+    assert.equal(session.agent, "review");
+    assert.equal(session.read_only, true);
+    assert.deepEqual(session.metadata, { transcript_source: "jsonl" });
+  });
+
+  it("listPending returns session identity and supports diagnostic items", async () => {
+    let requested: URL | undefined;
+    const client = new Rivetplane({ baseUrl: "https://example.test", authentication: "token", fetch: async (input) => {
+      requested = new URL(String(input));
+      return json([{ pending: { type: "approval", id: "pending-1", session_id: "runner/codex/session", tool_name: "shell", tool_input_summary: "npm test", requested_at: "2026-08-26T10:15:00Z" }, session_id: "runner/codex/session", machine_id: "runner", harness_type: "codex", cwd: "/repo", title: "Repair deployment", model: { provider_id: "openai", model_id: "gpt-5.4" }, agent: "default", read_only: false, metadata: { source: "app-server" }, actionable: true }]);
+    }});
+    const [item] = await client.listPending({ includeNonActionable: true });
+    assert.equal(requested?.pathname, "/v1/pending");
+    assert.equal(requested?.searchParams.get("include_non_actionable"), "true");
+    assert.equal(item?.title, "Repair deployment");
+    assert.deepEqual(item?.model, { provider_id: "openai", model_id: "gpt-5.4" });
+    assert.equal(item?.agent, "default");
+    assert.equal(item?.read_only, false);
+    assert.deepEqual(item?.metadata, { source: "app-server" });
   });
 });

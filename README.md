@@ -17,7 +17,8 @@ const rivetplane = new Rivetplane({
   authentication: process.env.RIVETPLANE_TOKEN!,
 });
 
-for (const session of await rivetplane.sessions.list({ status: "waiting_approval" })) {
+for (const session of await rivetplane.listSessions({ status: "waiting_approval" })) {
+  console.log(session.title, session.model?.provider_id, session.model?.model_id);
   const pending = await rivetplane.sessions.pending(session.id);
   if (pending?.type === "approval") {
     await rivetplane.sessions.respondToPending(session.id, {
@@ -43,7 +44,28 @@ The default server is `https://rivetplane.com`. Set `baseUrl` only for a self-ho
 Session lists support stable time-based pagination:
 
 ```ts
-const sessions = await rivetplane.sessions.list({ before: new Date().toISOString(), limit: 100 });
+const sessions = await rivetplane.listSessions({ before: new Date().toISOString(), limit: 100 });
+```
+
+Session list and detail responses can include harness-reported identity fields. All are optional so clients remain compatible with adapters that do not report them.
+
+```ts
+const session = await rivetplane.getSession(sessionId);
+
+console.log(session.title);
+console.log(session.model?.provider_id, session.model?.model_id);
+console.log(session.agent, session.read_only, session.metadata);
+```
+
+Use `listPending()` for the fleet-wide approval and question inbox. Pending items include the same optional session identity fields. By default, the server returns actionable items only.
+
+```ts
+const inbox = await rivetplane.listPending();
+const diagnostics = await rivetplane.listPending({ includeNonActionable: true });
+
+for (const item of inbox) {
+  console.log(item.pending.id, item.title, item.model, item.agent, item.read_only);
+}
 ```
 
 ## Pagination and streaming

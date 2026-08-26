@@ -17,8 +17,8 @@ The public package is `@rivetplane/sdk`. The `rivetplane` package name stays wit
 3. Create and push a signed tag that exactly matches the package version:
 
 ```sh
-git tag -s sdk-v0.1.0 -m "@rivetplane/sdk 0.1.0"
-git push origin sdk-v0.1.0
+git tag -s sdk-v0.1.1 -m "@rivetplane/sdk 0.1.1"
+git push origin sdk-v0.1.1
 ```
 
 The workflow checks the tag and version, runs tests in supported runtimes, checks browser bundling, installs the tarball in a clean consumer project, and publishes with provenance.

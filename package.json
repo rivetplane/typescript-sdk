@@ -1,6 +1,6 @@
 {
   "name": "@rivetplane/sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "First-party TypeScript SDK for the Rivetplane control-plane API",
   "keywords": ["rivetplane", "agent", "harness", "sdk", "typescript"],
   "license": "MIT",

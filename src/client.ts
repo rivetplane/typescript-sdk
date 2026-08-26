@@ -2,7 +2,7 @@ import type { Authentication } from "./auth.js";
 import { resolveToken } from "./auth.js";
 import { RivetplaneApiError, RivetplaneNetworkError, RivetplaneProtocolError } from "./errors.js";
 import { parseEventStream } from "./sse.js";
-import type { CommandAccepted, CreateSessionInput, HarnessCapabilities, Machine, PendingInteraction, PendingResponseInput, RetireMachineResult, Session, SessionListFilter, TranscriptEvent, TranscriptPage, TranscriptPageOptions } from "./types.js";
+import type { CommandAccepted, CreateSessionInput, HarnessCapabilities, Machine, PendingInteraction, PendingListItem, PendingResponseInput, RetireMachineResult, Session, SessionListFilter, TranscriptEvent, TranscriptPage, TranscriptPageOptions } from "./types.js";
 import { connectEventStream, type EventSocketOptions } from "./websocket.js";
 
 export interface RivetplaneOptions {
@@ -13,6 +13,7 @@ export interface RivetplaneOptions {
 }
 
 export interface RequestOptions { signal?: AbortSignal; headers?: HeadersInit }
+export interface PendingListOptions extends RequestOptions { includeNonActionable?: boolean }
 
 const encode = encodeURIComponent;
 const messageFor = (body: unknown, status: number): string => typeof body === "object" && body && "error" in body && typeof body.error === "string" ? body.error : `Rivetplane API request failed with status ${status}`;
@@ -72,6 +73,22 @@ export class Rivetplane {
   events(options?: EventSocketOptions): AsyncGenerator<import("./types.js").ControlPlaneEvent> {
     const url = this.url("v1/events/stream"); url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
     return connectEventStream(url, this.authentication, options);
+  }
+
+  listSessions(filter: SessionListFilter = {}, options: RequestOptions = {}): Promise<Session[]> {
+    return this.sessions.list(filter, options);
+  }
+
+  getSession(sessionId: string, options: RequestOptions = {}): Promise<Session> {
+    return this.sessions.get(sessionId, options);
+  }
+
+  listPending(options: PendingListOptions = {}): Promise<PendingListItem[]> {
+    const { includeNonActionable, ...requestOptions } = options;
+    return this.request("GET", "v1/pending", {
+      ...requestOptions,
+      query: { include_non_actionable: includeNonActionable ? "true" : undefined },
+    });
   }
 }
 

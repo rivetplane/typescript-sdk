@@ -40,7 +40,20 @@ export interface Question {
 
 export type PendingInteraction = Approval | Question;
 
-export interface Session {
+export interface SessionModel {
+  provider_id: string;
+  model_id: string;
+}
+
+export interface SessionIdentity {
+  title?: string;
+  model?: SessionModel;
+  agent?: string;
+  read_only?: boolean;
+  metadata?: JsonValue;
+}
+
+export interface Session extends SessionIdentity {
   id: string;
   machine_id: string;
   harness_type: string;
@@ -49,6 +62,16 @@ export interface Session {
   created_at: Timestamp;
   last_activity_at: Timestamp;
   pending: PendingInteraction | null;
+}
+
+export interface PendingListItem extends SessionIdentity {
+  pending: PendingInteraction;
+  session_id: string;
+  machine_id: string;
+  harness_type: string;
+  cwd: string;
+  actionable: boolean;
+  reason?: string;
 }
 
 export interface UserMessagePayload { text: string }
