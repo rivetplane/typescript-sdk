@@ -6,8 +6,17 @@ const client = new Rivetplane({
 });
 
 try {
-  const sessions = await client.sessions.list();
-  console.log(sessions);
+  const sessions = await client.listSessions();
+  for (const session of sessions) {
+    console.log(session.id, session.title, session.model, session.agent, session.read_only, session.metadata);
+  }
+
+  if (sessions[0]) console.log(await client.getSession(sessions[0].id));
+
+  const pending = await client.listPending({ includeNonActionable: true });
+  for (const item of pending) {
+    console.log(item.pending.id, item.title, item.model, item.agent, item.read_only, item.metadata);
+  }
 } catch (error) {
   if (error instanceof RivetplaneApiError) console.error(error.status, error.body);
   else throw error;
