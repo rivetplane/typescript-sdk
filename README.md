@@ -57,16 +57,26 @@ console.log(session.model?.provider_id, session.model?.model_id);
 console.log(session.agent, session.read_only, session.metadata);
 ```
 
-Use `listPending()` for the fleet-wide approval and question inbox. Pending items include the same optional session identity fields. By default, the server returns actionable items only.
+Use `attention` for the fleet-wide approval and question inbox. Pending items include the same optional session identity fields. By default, the server returns actionable items only. `listPending()` remains as a compatibility alias for `attention.list()`.
 
 ```ts
-const inbox = await rivetplane.listPending();
-const diagnostics = await rivetplane.listPending({ includeNonActionable: true });
+const inbox = await rivetplane.attention.list();
+const diagnostics = await rivetplane.attention.list({ includeNonActionable: true });
 
 for (const item of inbox) {
   console.log(item.pending.id, item.title, item.model, item.agent, item.read_only);
 }
+
+const approval = inbox.find((item) => item.pending.type === "approval");
+if (approval?.actionable) {
+  await rivetplane.attention.respond(approval.pending.id, {
+    response: "approve",
+    scope: "once",
+  });
+}
 ```
+
+Harness adapters can report normalized `command`, `description`, `source`, `response_mode`, and `expires_at` fields. Consumers should prefer those structured fields and retain `tool_input_summary` only as a compatibility fallback.
 
 ## Pagination and streaming
 

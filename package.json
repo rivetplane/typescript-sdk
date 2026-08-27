@@ -1,8 +1,14 @@
 {
   "name": "@rivetplane/sdk",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "First-party TypeScript SDK for the Rivetplane control-plane API",
-  "keywords": ["rivetplane", "agent", "harness", "sdk", "typescript"],
+  "keywords": [
+    "rivetplane",
+    "agent",
+    "harness",
+    "sdk",
+    "typescript"
+  ],
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -16,12 +22,28 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist", "!dist/*.test.*", "README.md", "LICENSE", "examples"],
-  "engines": { "node": ">=24.0.0" },
-  "repository": { "type": "git", "url": "git+https://github.com/rivetplane/typescript-sdk.git" },
+  "files": [
+    "dist",
+    "!dist/*.test.*",
+    "README.md",
+    "LICENSE",
+    "examples"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rivetplane/typescript-sdk.git"
+  },
   "homepage": "https://github.com/rivetplane/typescript-sdk#readme",
-  "bugs": { "url": "https://github.com/rivetplane/typescript-sdk/issues" },
-  "publishConfig": { "access": "public", "provenance": true },
+  "bugs": {
+    "url": "https://github.com/rivetplane/typescript-sdk/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "build": "tsc -b",
     "clean": "tsc -b --clean && rm -rf dist",

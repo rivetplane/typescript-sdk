@@ -84,4 +84,16 @@ describe("Rivetplane REST client", () => {
     assert.equal(item?.read_only, false);
     assert.deepEqual(item?.metadata, { source: "app-server" });
   });
+
+  it("exposes account-wide attention responses without a custom request shim", async () => {
+    const calls: Array<{ url: URL; body?: unknown }> = [];
+    const client = new Rivetplane({ baseUrl: "https://example.test", authentication: "token", fetch: async (input, init) => {
+      calls.push({ url: new URL(String(input)), ...(init?.body ? { body: JSON.parse(String(init.body)) } : {}) });
+      return json({ command_id: "command-1", completed: true });
+    }});
+    const result = await client.attention.respond("pending/1", { response: "approve", scope: "once" });
+    assert.deepEqual(result, { command_id: "command-1", completed: true });
+    assert.equal(calls[0]?.url.pathname, "/v1/pending/pending%2F1/respond");
+    assert.deepEqual(calls[0]?.body, { response: "approve", scope: "once" });
+  });
 });
