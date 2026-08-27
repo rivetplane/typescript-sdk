@@ -15,6 +15,7 @@ export interface Machine {
 export type SessionStatus = "running" | "waiting_input" | "waiting_approval" | "completed" | "error";
 export type ApprovalResolution = "approve" | "deny" | "timeout" | "cancelled";
 export type ApprovalScope = "once" | "always_this_tool" | "always_session";
+export type PendingResponseMode = "remote" | "local";
 
 export interface Approval {
   type: "approval";
@@ -22,6 +23,12 @@ export interface Approval {
   session_id: string;
   tool_name: string;
   tool_input_summary: string;
+  command?: string;
+  description?: string;
+  source?: string;
+  response_mode?: PendingResponseMode;
+  read_only?: boolean;
+  expires_at?: Timestamp;
   requested_at: Timestamp;
   resolved_at?: Timestamp;
   resolution?: ApprovalResolution;
@@ -32,7 +39,15 @@ export interface Question {
   id: string;
   session_id: string;
   prompt: string;
+  header?: string;
   options?: string[];
+  option_details?: Array<{ label: string; description?: string }>;
+  questions?: Array<{ prompt: string; header: string; options: Array<{ label: string; description?: string }>; multiple?: boolean; custom?: boolean }>;
+  tool_call_id?: string;
+  source?: string;
+  response_mode?: PendingResponseMode;
+  read_only?: boolean;
+  expires_at?: Timestamp;
   requested_at: Timestamp;
   resolved_at?: Timestamp;
   response?: string;
@@ -72,6 +87,7 @@ export interface PendingListItem extends SessionIdentity {
   cwd: string;
   actionable: boolean;
   reason?: string;
+  reason_code?: string;
 }
 
 export interface UserMessagePayload { text: string }
@@ -132,6 +148,7 @@ export interface TranscriptPageOptions { since?: Timestamp; limit?: number; curs
 export interface CreateSessionInput { cwd: string; title?: string; model: { provider_id: string; model_id: string } }
 export interface PendingResponseInput { pending_id: string; response: string; scope?: ApprovalScope }
 export interface CommandAccepted { command_id: string; accepted: true }
+export interface CommandCompleted { command_id: string; completed: true }
 export interface RetireMachineResult { retired: true }
 
 export interface ControlPlaneEvent<TData = unknown> {

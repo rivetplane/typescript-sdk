@@ -2,7 +2,7 @@ import type { Authentication } from "./auth.js";
 import { resolveToken } from "./auth.js";
 import { RivetplaneApiError, RivetplaneNetworkError, RivetplaneProtocolError } from "./errors.js";
 import { parseEventStream } from "./sse.js";
-import type { CommandAccepted, CreateSessionInput, HarnessCapabilities, Machine, PendingInteraction, PendingListItem, PendingResponseInput, RetireMachineResult, Session, SessionListFilter, TranscriptEvent, TranscriptPage, TranscriptPageOptions } from "./types.js";
+import type { CommandAccepted, CommandCompleted, CreateSessionInput, HarnessCapabilities, Machine, PendingInteraction, PendingListItem, PendingResponseInput, RetireMachineResult, Session, SessionListFilter, TranscriptEvent, TranscriptPage, TranscriptPageOptions } from "./types.js";
 import { connectEventStream, type EventSocketOptions } from "./websocket.js";
 
 export interface RivetplaneOptions {
@@ -23,6 +23,7 @@ export class Rivetplane {
   readonly sessions: SessionsResource;
   readonly machines: MachinesResource;
   readonly harnesses: HarnessesResource;
+  readonly attention: AttentionResource;
   private readonly authentication: Authentication;
   private readonly fetcher: typeof fetch;
   private readonly headers: Headers;
@@ -37,6 +38,7 @@ export class Rivetplane {
     this.sessions = new SessionsResource(this);
     this.machines = new MachinesResource(this);
     this.harnesses = new HarnessesResource(this);
+    this.attention = new AttentionResource(this);
   }
 
   url(path: string, query?: Record<string, string | number | undefined>): URL {
@@ -84,11 +86,22 @@ export class Rivetplane {
   }
 
   listPending(options: PendingListOptions = {}): Promise<PendingListItem[]> {
+    return this.attention.list(options);
+  }
+}
+
+/** Account-wide interactions that currently need human attention. */
+export class AttentionResource {
+  constructor(private readonly client: Rivetplane) {}
+  list(options: PendingListOptions = {}): Promise<PendingListItem[]> {
     const { includeNonActionable, ...requestOptions } = options;
-    return this.request("GET", "v1/pending", {
+    return this.client.request("GET", "v1/pending", {
       ...requestOptions,
       query: { include_non_actionable: includeNonActionable ? "true" : undefined },
     });
+  }
+  respond(pendingId: string, input: Omit<PendingResponseInput, "pending_id">, options: RequestOptions = {}): Promise<CommandCompleted> {
+    return this.client.request("POST", `v1/pending/${encode(pendingId)}/respond`, { ...options, body: input });
   }
 }
 

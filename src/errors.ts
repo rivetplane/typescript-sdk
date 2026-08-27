@@ -17,6 +17,7 @@ export class RivetplaneApiError extends RivetplaneError {
   readonly url: string;
   readonly body?: unknown;
   readonly requestId?: string;
+  readonly code?: string;
 
   constructor(message: string, options: ApiErrorOptions) {
     super(message);
@@ -25,6 +26,7 @@ export class RivetplaneApiError extends RivetplaneError {
     this.url = options.url;
     this.body = options.body;
     this.requestId = options.requestId;
+    this.code = typeof options.body === "object" && options.body && "code" in options.body && typeof options.body.code === "string" ? options.body.code : undefined;
   }
 
   get retryable(): boolean { return this.status === 408 || this.status === 429 || this.status >= 500; }
