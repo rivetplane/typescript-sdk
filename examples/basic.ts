@@ -17,6 +17,9 @@ try {
   for (const item of pending) {
     console.log(item.pending.id, item.title, item.model, item.agent, item.read_only, item.metadata);
   }
+
+  const usage = await client.getUsage({ from: new Date(Date.now() - 86_400_000).toISOString() });
+  console.log(usage.totals.tokens, usage.totals.cost.status, usage.totals.cost.amount);
 } catch (error) {
   if (error instanceof RivetplaneApiError) console.error(error.status, error.body);
   else throw error;

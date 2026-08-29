@@ -2,7 +2,7 @@ import type { Authentication } from "./auth.js";
 import { resolveToken } from "./auth.js";
 import { RivetplaneApiError, RivetplaneNetworkError, RivetplaneProtocolError } from "./errors.js";
 import { parseEventStream } from "./sse.js";
-import type { CommandAccepted, CommandCompleted, CreateSessionInput, HarnessCapabilities, Machine, PendingInteraction, PendingListItem, PendingResponseInput, RetireMachineResult, Session, SessionListFilter, TranscriptEvent, TranscriptPage, TranscriptPageOptions } from "./types.js";
+import type { CommandAccepted, CommandCompleted, CreateSessionInput, HarnessCapabilities, Machine, PendingInteraction, PendingListItem, PendingResponseInput, RetireMachineResult, Session, SessionListFilter, TranscriptEvent, TranscriptPage, TranscriptPageOptions, UsageFilter, UsageReport } from "./types.js";
 import { connectEventStream, type EventSocketOptions } from "./websocket.js";
 
 export interface RivetplaneOptions {
@@ -24,6 +24,7 @@ export class Rivetplane {
   readonly machines: MachinesResource;
   readonly harnesses: HarnessesResource;
   readonly attention: AttentionResource;
+  readonly usage: UsageResource;
   private readonly authentication: Authentication;
   private readonly fetcher: typeof fetch;
   private readonly headers: Headers;
@@ -39,6 +40,7 @@ export class Rivetplane {
     this.machines = new MachinesResource(this);
     this.harnesses = new HarnessesResource(this);
     this.attention = new AttentionResource(this);
+    this.usage = new UsageResource(this);
   }
 
   url(path: string, query?: Record<string, string | number | undefined>): URL {
@@ -87,6 +89,29 @@ export class Rivetplane {
 
   listPending(options: PendingListOptions = {}): Promise<PendingListItem[]> {
     return this.attention.list(options);
+  }
+
+  getUsage(filter: UsageFilter = {}, options: RequestOptions = {}): Promise<UsageReport> {
+    return this.usage.get(filter, options);
+  }
+}
+
+/** Account-wide AI token, cost, context, and quota usage. */
+export class UsageResource {
+  constructor(private readonly client: Rivetplane) {}
+  get(filter: UsageFilter = {}, options: RequestOptions = {}): Promise<UsageReport> {
+    return this.client.request("GET", "v1/usage", {
+      ...options,
+      query: {
+        from: filter.from,
+        to: filter.to,
+        machine: filter.machine,
+        harness: filter.harness,
+        session: filter.session,
+        provider: filter.provider,
+        model: filter.model,
+      },
+    });
   }
 }
 

@@ -78,6 +78,33 @@ if (approval?.actionable) {
 
 Harness adapters can report normalized `command`, `description`, `source`, `response_mode`, and `expires_at` fields. Consumers should prefer those structured fields and retain `tool_input_summary` only as a compatibility fallback.
 
+## AI usage
+
+Use `usage.get()` to get token totals, cost semantics, breakdowns, and the latest context and quota data. The `getUsage()` method is a short alias. All filters are optional.
+
+```ts
+const usage = await rivetplane.usage.get({
+  from: "2026-08-25T00:00:00Z",
+  to: "2026-08-26T00:00:00Z",
+  machine: "laptop",
+  harness: "codex",
+  provider: "openai",
+  model: "gpt-5.4",
+});
+
+console.log(usage.totals.tokens.total);
+console.log(usage.totals.cost.coverage); // "complete", "partial", or "none"
+if (usage.totals.cost.status === "reported") {
+  console.log("Reported cost", usage.totals.cost.amount, usage.totals.cost.currency);
+} else if (usage.totals.cost.status === "estimated") {
+  console.log("Estimated cost (not a bill)", usage.totals.cost.amount, usage.totals.cost.currency);
+} else {
+  console.log("Cost unavailable");
+}
+```
+
+Token fields use `null` when a source does not report a counter. Cost status is always explicit: `reported`, `estimated`, or `unavailable`. Do not treat an estimate as authoritative billing. Cost summaries also contain `coverage`, `priced_samples`, and `unavailable_samples`, so a priced subset cannot look like complete spend. `by_currency` can contain separate totals when a single aggregate amount cannot represent multiple currencies. Older harness clients can produce an empty report with unavailable values.
+
 ## Pagination and streaming
 
 `transcriptPages()` gets all transcript pages lazily. `transcriptEvents()` flattens those pages. `streamTranscript()` reads live SSE events with an authenticated `fetch` call. Thus, it works in browsers where `EventSource` cannot set an authorization header.
