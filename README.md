@@ -49,7 +49,11 @@ Use `DevicePairing` on a device that has no keyboard or browser. These calls do 
 import { DevicePairing, Rivetplane } from "@rivetplane/sdk";
 
 const pairing = new DevicePairing();
-const authorization = await pairing.create({ device_name: "Kitchen e-paper" });
+// Generate this UUID once, then keep it in the device's mode-0600 credential store.
+const authorization = await pairing.create({
+  device_name: "Kitchen e-paper",
+  device_id: storedDeviceId,
+});
 
 console.log(authorization.verification_uri, authorization.user_code);
 

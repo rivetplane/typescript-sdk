@@ -22,11 +22,11 @@ describe("consumer device pairing", () => {
         interval: 5,
       });
     }});
-    const result = await pairing.create({ device_name: "  Kitchen display  " });
+    const result = await pairing.create({ device_name: "  Kitchen display  ", device_id: "12345678-1234-4123-8123-123456789abc" });
     assert.equal(result.user_code, "ABCD-EFGH");
     assert.equal(request?.url.pathname, "/root/v1/auth/device/code");
     assert.equal(request?.headers.get("authorization"), null);
-    assert.deepEqual(request?.body, { device_name: "Kitchen display" });
+    assert.deepEqual(request?.body, { device_name: "Kitchen display", device_id: "12345678-1234-4123-8123-123456789abc" });
   });
 
   it("returns typed pending, slow-down, denial, expiry, and approval states", async () => {

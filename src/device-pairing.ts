@@ -33,6 +33,7 @@ export class DevicePairing {
   async create(input: DeviceAuthorizationInput, options: DevicePairingRequestOptions = {}): Promise<DeviceAuthorization> {
     const name = input.device_name.trim();
     if (!name || name.length > 80) throw new RangeError("device_name must contain 1 to 80 characters");
+    if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(input.device_id)) throw new RangeError("device_id must be a UUID");
     const result = await this.transport.request<DeviceAuthorization>("POST", "v1/auth/device/code", {
       ...options,
       authenticated: false,

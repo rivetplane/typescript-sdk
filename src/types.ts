@@ -5,8 +5,7 @@ export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue
 export type ConsumerDeviceScope = "sessions:list" | "sessions:read" | "transcripts:read" | "messages:send";
 export interface DeviceAuthorizationInput {
   device_name: string;
-  device_id?: string;
-  scopes?: ConsumerDeviceScope[];
+  device_id: string;
 }
 export interface DeviceAuthorization {
   device_code: string;
