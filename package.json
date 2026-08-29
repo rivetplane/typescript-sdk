@@ -1,6 +1,6 @@
 {
   "name": "@rivetplane/sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "First-party TypeScript SDK for the Rivetplane control-plane API",
   "keywords": [
     "rivetplane",
