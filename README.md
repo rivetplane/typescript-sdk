@@ -41,6 +41,42 @@ const rivetplane = new Rivetplane({
 
 The default server is `https://rivetplane.com`. Set `baseUrl` only for a self-hosted server or the local runner API.
 
+## Pair a consumer device
+
+Use `DevicePairing` on a device that has no keyboard or browser. These calls do not use an existing bearer token. The class converts the device-token error responses into typed states, so an application does not need to parse API error bodies.
+
+```ts
+import { DevicePairing, Rivetplane } from "@rivetplane/sdk";
+
+const pairing = new DevicePairing();
+const authorization = await pairing.create({ device_name: "Kitchen e-paper" });
+
+console.log(authorization.verification_uri, authorization.user_code);
+
+let interval = authorization.interval;
+for (;;) {
+  await new Promise((resolve) => setTimeout(resolve, interval * 1_000));
+  const result = await pairing.poll(authorization.device_code);
+  if (result.status === "pending") continue;
+  if (result.status === "slow_down") {
+    interval = result.interval ?? interval + 5;
+    continue;
+  }
+  if (result.status !== "approved") throw new Error(`Pairing ended: ${result.status}`);
+
+  const rivetplane = new Rivetplane({ authentication: result.access_token });
+  console.log(await rivetplane.sessions.list());
+  break;
+}
+```
+
+A consumer token has only `sessions:read`, `transcripts:read`, and `messages:write`. It cannot use the runner relay, retire a runner, manage tokens, or do other administrative work. An account API token can list and revoke paired controllers:
+
+```ts
+const devices = await rivetplane.consumerDevices.list();
+await rivetplane.consumerDevices.revoke(devices[0]!.id);
+```
+
 Session lists support stable time-based pagination:
 
 ```ts

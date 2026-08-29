@@ -1,7 +1,9 @@
 import type { Authentication } from "./auth.js";
 import { resolveToken } from "./auth.js";
-import { RivetplaneApiError, RivetplaneNetworkError, RivetplaneProtocolError } from "./errors.js";
+import { RivetplaneApiError, RivetplaneNetworkError } from "./errors.js";
+import { ConsumerDevicesResource } from "./device-pairing.js";
 import { parseEventStream } from "./sse.js";
+import { HttpTransport } from "./transport.js";
 import type { CommandAccepted, CommandCompleted, CreateSessionInput, HarnessCapabilities, Machine, PendingInteraction, PendingListItem, PendingResponseInput, RetireMachineResult, Session, SessionListFilter, TranscriptEvent, TranscriptPage, TranscriptPageOptions } from "./types.js";
 import { connectEventStream, type EventSocketOptions } from "./websocket.js";
 
@@ -24,9 +26,11 @@ export class Rivetplane {
   readonly machines: MachinesResource;
   readonly harnesses: HarnessesResource;
   readonly attention: AttentionResource;
+  readonly consumerDevices: ConsumerDevicesResource;
   private readonly authentication: Authentication;
   private readonly fetcher: typeof fetch;
   private readonly headers: Headers;
+  private readonly transport: HttpTransport;
 
   constructor(options: RivetplaneOptions) {
     this.baseUrl = new URL(options.baseUrl ?? "https://rivetplane.com");
@@ -35,10 +39,12 @@ export class Rivetplane {
     this.fetcher = options.fetch ?? globalThis.fetch;
     if (!this.fetcher) throw new TypeError("fetch is not available. Pass options.fetch in this runtime.");
     this.headers = new Headers(options.headers);
+    this.transport = new HttpTransport(options);
     this.sessions = new SessionsResource(this);
     this.machines = new MachinesResource(this);
     this.harnesses = new HarnessesResource(this);
     this.attention = new AttentionResource(this);
+    this.consumerDevices = new ConsumerDevicesResource(this.transport);
   }
 
   url(path: string, query?: Record<string, string | number | undefined>): URL {
@@ -48,18 +54,7 @@ export class Rivetplane {
   }
 
   async request<T>(method: string, path: string, options: RequestOptions & { body?: unknown; query?: Record<string, string | number | undefined> } = {}): Promise<T> {
-    const url = this.url(path, options.query); const headers = new Headers(this.headers);
-    new Headers(options.headers).forEach((value, key) => headers.set(key, value));
-    headers.set("authorization", `Bearer ${await resolveToken(this.authentication)}`);
-    if (options.body !== undefined) headers.set("content-type", "application/json");
-    let response: Response;
-    try { response = await this.fetcher(url, { method, headers, ...(options.body !== undefined ? { body: JSON.stringify(options.body) } : {}), signal: options.signal }); }
-    catch (error) { throw new RivetplaneNetworkError(`Rivetplane API request failed: ${error instanceof Error ? error.message : String(error)}`, { cause: error }); }
-    const text = await response.text(); let body: unknown;
-    try { body = text ? JSON.parse(text) : undefined; }
-    catch { if (response.ok) throw new RivetplaneProtocolError(`Rivetplane API returned invalid JSON for ${method} ${url.pathname}`); body = text; }
-    if (!response.ok) throw new RivetplaneApiError(messageFor(body, response.status), { status: response.status, method, url: url.toString(), body, requestId: response.headers.get("x-request-id") ?? undefined });
-    return body as T;
+    return this.transport.request(method, path, options);
   }
 
   async *sse<T>(path: string, options: RequestOptions = {}): AsyncGenerator<T> {
