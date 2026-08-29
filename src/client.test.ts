@@ -96,4 +96,46 @@ describe("Rivetplane REST client", () => {
     assert.equal(calls[0]?.url.pathname, "/v1/pending/pending%2F1/respond");
     assert.deepEqual(calls[0]?.body, { response: "approve", scope: "once" });
   });
+
+  it("gets usage with all filters and preserves cost confidence", async () => {
+    const calls: URL[] = [];
+    const report = {
+      range: { from: "2026-08-28T00:00:00Z", to: "2026-08-29T00:00:00Z" },
+      totals: {
+        tokens: { input: 100, output: 20, reasoning: null, cache_read: 40, cache_write: null, total: 120 },
+        cost: { status: "estimated", coverage: "partial", priced_samples: 1, unavailable_samples: 1, amount: 0.12, currency: "USD" },
+      },
+      breakdowns: {
+        by_machine: [], by_harness: [], by_session: [], by_provider: [],
+        by_model: [{ key: "gpt-5.4", tokens: { input: 100, output: 20, reasoning: null, cache_read: 40, cache_write: null, total: 120 }, cost: { status: "estimated", coverage: "partial", priced_samples: 1, unavailable_samples: 1, amount: 0.12, currency: "USD" } }],
+      },
+      context: [{ machine_id: "machine-1", session_id: "session-1", harness: "codex", provider: "openai", model: "gpt-5.4", timestamp: "2026-08-28T12:00:00Z", window_size: 200_000, used_tokens: 120 }],
+      quota: [{ machine_id: "machine-1", session_id: "session-1", harness: "codex", timestamp: "2026-08-28T12:00:00Z", windows: [{ name: "five_hour", used_percent: 25, resets_at: "2026-08-28T16:00:00Z" }] }],
+      samples_count: 1,
+    } as const;
+    const client = new Rivetplane({ baseUrl: "https://example.test", authentication: "token", fetch: async (input) => {
+      calls.push(new URL(String(input)));
+      return json(report);
+    }});
+    const result = await client.getUsage({ from: report.range.from, to: report.range.to, machine: "machine-1", harness: "codex", session: "session-1", provider: "openai", model: "gpt-5.4" });
+    assert.equal(calls[0]?.pathname, "/v1/usage");
+    assert.deepEqual(Object.fromEntries(calls[0]!.searchParams), { from: report.range.from, to: report.range.to, machine: "machine-1", harness: "codex", session: "session-1", provider: "openai", model: "gpt-5.4" });
+    assert.equal(result.totals.cost.status, "estimated");
+    assert.equal(result.totals.cost.coverage, "partial");
+    assert.equal(result.totals.tokens.reasoning, null);
+    assert.equal(result.context[0]?.window_size, 200_000);
+    assert.equal(result.quota[0]?.windows[0]?.used_percent, 25);
+  });
+
+  it("exposes unavailable usage values without inventing amounts", async () => {
+    const client = new Rivetplane({ authentication: "token", fetch: async () => json({
+      range: { from: "2026-08-29T00:00:00Z", to: "2026-08-29T01:00:00Z" },
+      totals: { tokens: { input: null, output: null, reasoning: null, cache_read: null, cache_write: null, total: null }, cost: { status: "unavailable", coverage: "none", priced_samples: 0, unavailable_samples: 0 } },
+      breakdowns: { by_machine: [], by_harness: [], by_session: [], by_provider: [], by_model: [] },
+      context: [], quota: [], samples_count: 0,
+    }) });
+    const result = await client.usage.get();
+    assert.deepEqual(result.totals.cost, { status: "unavailable", coverage: "none", priced_samples: 0, unavailable_samples: 0 });
+    assert.equal(result.totals.tokens.total, null);
+  });
 });

@@ -158,3 +158,126 @@ export interface ControlPlaneEvent<TData = unknown> {
   session_id?: string;
   data: TData;
 }
+
+export type UsageCounterMode = "incremental" | "cumulative";
+export type UsageCostStatus = "reported" | "estimated" | "unavailable";
+
+/** Normalized token counts. A null field means that the harness did not report it. */
+export interface UsageTokenCounts {
+  input: number | null;
+  output: number | null;
+  reasoning: number | null;
+  cache_read: number | null;
+  cache_write: number | null;
+  total: number | null;
+}
+
+/** Cost for one usage sample. Estimated cost is not an authoritative bill. */
+export interface UsageCost {
+  status: UsageCostStatus;
+  amount?: number;
+  currency?: string;
+}
+
+export interface UsageContext {
+  window_size: number;
+  used_tokens?: number | null;
+}
+
+export interface UsageQuotaWindow {
+  name: string;
+  used_percent?: number | null;
+  remaining?: number | null;
+  limit?: number | null;
+  resets_at?: Timestamp;
+}
+
+/** A content-free usage event. event_id is stable and supports idempotent ingestion. */
+export interface UsageSample {
+  event_id: string;
+  machine_id: string;
+  /** Null or absent for account-level usage and quota events. */
+  session_id?: string | null;
+  turn_id?: string;
+  timestamp: Timestamp;
+  harness: string;
+  source: string;
+  provider?: string;
+  model?: string;
+  source_counter_mode: UsageCounterMode;
+  tokens: UsageTokenCounts;
+  context?: UsageContext;
+  cost: UsageCost;
+  quota?: UsageQuotaWindow[];
+}
+
+export interface UsageCurrencyAmount {
+  currency: string;
+  amount: number;
+}
+
+/** Aggregated cost. by_currency is present when one amount cannot represent all currencies. */
+export interface UsageCostSummary extends UsageCost {
+  coverage: "complete" | "partial" | "none";
+  priced_samples: number;
+  unavailable_samples: number;
+  by_currency?: UsageCurrencyAmount[];
+}
+
+export interface UsageAggregate {
+  tokens: UsageTokenCounts;
+  cost: UsageCostSummary;
+}
+
+export interface UsageBreakdown extends UsageAggregate {
+  key: string;
+}
+
+export interface UsageContextRecord {
+  machine_id: string;
+  session_id?: string | null;
+  harness: string;
+  provider?: string;
+  model?: string;
+  timestamp: Timestamp;
+  window_size: number;
+  used_tokens?: number | null;
+}
+
+export interface UsageQuotaRecord {
+  machine_id: string;
+  session_id?: string | null;
+  harness: string;
+  provider?: string;
+  model?: string;
+  timestamp: Timestamp;
+  windows: UsageQuotaWindow[];
+}
+
+export interface UsageQuery {
+  from?: Timestamp;
+  to?: Timestamp;
+  machine?: string;
+  harness?: string;
+  session?: string;
+  provider?: string;
+  model?: string;
+}
+
+/** SDK-friendly name for the GET /v1/usage query. */
+export type UsageFilter = UsageQuery;
+
+export interface UsageReport {
+  range: { from: Timestamp; to: Timestamp };
+  totals: UsageAggregate;
+  breakdowns: {
+    by_machine: UsageBreakdown[];
+    by_harness: UsageBreakdown[];
+    by_session: UsageBreakdown[];
+    by_provider: UsageBreakdown[];
+    by_model: UsageBreakdown[];
+  };
+  context: UsageContextRecord[];
+  quota: UsageQuotaRecord[];
+  samples_count: number;
+}
