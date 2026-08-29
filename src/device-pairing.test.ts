@@ -24,7 +24,7 @@ describe("consumer device pairing", () => {
     }});
     const result = await pairing.create({ device_name: "  Kitchen display  " });
     assert.equal(result.user_code, "ABCD-EFGH");
-    assert.equal(request?.url.pathname, "/root/v1/device/authorizations");
+    assert.equal(request?.url.pathname, "/root/v1/auth/device/code");
     assert.equal(request?.headers.get("authorization"), null);
     assert.deepEqual(request?.body, { device_name: "Kitchen display" });
   });
@@ -35,7 +35,7 @@ describe("consumer device pairing", () => {
       json({ error: "slow_down", interval: 10 }, 429),
       json({ error: "access_denied" }, 400),
       json({ error: "expired_token" }, 400),
-      json({ access_token: "consumer-secret", token_type: "Bearer", device_id: "device-1", scopes: ["sessions:read", "transcripts:read", "messages:write"] }),
+      json({ access_token: "consumer-secret", token_type: "Bearer", expires_in: null, scope: "sessions:list sessions:read transcripts:read messages:send", device: { id: "record-1", device_id: "device-1", name: "Kitchen display", scopes: ["sessions:list", "sessions:read", "transcripts:read", "messages:send"], created_at: "2026-08-29T00:00:00Z", last_used_at: null, revoked_at: null } }),
     ];
     const pairing = new DevicePairing({ fetch: async () => responses.shift()! });
     assert.deepEqual(await pairing.poll("code"), { status: "pending", interval: 5 });
@@ -46,8 +46,9 @@ describe("consumer device pairing", () => {
       status: "approved",
       access_token: "consumer-secret",
       token_type: "Bearer",
-      device_id: "device-1",
-      scopes: ["sessions:read", "transcripts:read", "messages:write"],
+      expires_in: null,
+      scope: "sessions:list sessions:read transcripts:read messages:send",
+      device: { id: "record-1", device_id: "device-1", name: "Kitchen display", scopes: ["sessions:list", "sessions:read", "transcripts:read", "messages:send"], created_at: "2026-08-29T00:00:00Z", last_used_at: null, revoked_at: null },
     });
   });
 
@@ -63,13 +64,13 @@ describe("consumer device pairing", () => {
     const client = new Rivetplane({ baseUrl: "https://example.test", authentication: "account-token", fetch: async (input, init) => {
       calls.push({ url: new URL(String(input)), headers: new Headers(init?.headers) });
       return calls.length === 1
-        ? json([{ id: "display/1", name: "Kitchen display", scopes: ["sessions:read"], created_at: "2026-08-29T00:00:00Z", last_used_at: null, revoked_at: null }])
+        ? json([{ id: "display/1", device_id: "device-1", name: "Kitchen display", scopes: ["sessions:list"], created_at: "2026-08-29T00:00:00Z", last_used_at: null, revoked_at: null }])
         : json({ revoked: true });
     }});
     const devices = await client.consumerDevices.list();
     assert.equal(devices[0]?.name, "Kitchen display");
     assert.deepEqual(await client.consumerDevices.revoke("display/1"), { revoked: true });
     assert.equal(calls[0]?.headers.get("authorization"), "Bearer account-token");
-    assert.equal(calls[1]?.url.pathname, "/v1/controller-devices/display%2F1/revoke");
+    assert.equal(calls[1]?.url.pathname, "/v1/consumer-devices/display%2F1/revoke");
   });
 });

@@ -70,7 +70,7 @@ for (;;) {
 }
 ```
 
-A consumer token has only `sessions:read`, `transcripts:read`, and `messages:write`. It cannot use the runner relay, retire a runner, manage tokens, or do other administrative work. An account API token can list and revoke paired controllers:
+A consumer token has only `sessions:list`, `sessions:read`, `transcripts:read`, and `messages:send`. It cannot use the runner relay, retire a runner, manage tokens, or do other administrative work. An account API token can list and revoke paired controllers:
 
 ```ts
 const devices = await rivetplane.consumerDevices.list();

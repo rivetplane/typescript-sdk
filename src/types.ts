@@ -2,7 +2,7 @@ export type Timestamp = string;
 export type JsonPrimitive = boolean | number | string | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
-export type ConsumerDeviceScope = "sessions:read" | "transcripts:read" | "messages:write";
+export type ConsumerDeviceScope = "sessions:list" | "sessions:read" | "transcripts:read" | "messages:send";
 export interface DeviceAuthorizationInput {
   device_name: string;
   device_id?: string;
@@ -21,9 +21,10 @@ export type DeviceTokenPollResult =
   | { status: "slow_down"; interval?: number }
   | { status: "denied" }
   | { status: "expired" }
-  | { status: "approved"; access_token: string; token_type: "Bearer"; device_id: string; scopes: ConsumerDeviceScope[] };
+  | { status: "approved"; access_token: string; token_type: "Bearer"; expires_in: null; scope: string; device: ConsumerDevice };
 export interface ConsumerDevice {
   id: string;
+  device_id: string;
   name: string;
   scopes: ConsumerDeviceScope[];
   created_at: Timestamp;

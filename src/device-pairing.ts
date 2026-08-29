@@ -33,7 +33,7 @@ export class DevicePairing {
   async create(input: DeviceAuthorizationInput, options: DevicePairingRequestOptions = {}): Promise<DeviceAuthorization> {
     const name = input.device_name.trim();
     if (!name || name.length > 80) throw new RangeError("device_name must contain 1 to 80 characters");
-    const result = await this.transport.request<DeviceAuthorization>("POST", "v1/device/authorizations", {
+    const result = await this.transport.request<DeviceAuthorization>("POST", "v1/auth/device/code", {
       ...options,
       authenticated: false,
       body: { ...input, device_name: name },
@@ -46,14 +46,15 @@ export class DevicePairing {
 
   async poll(deviceCode: string, options: DevicePairingRequestOptions = {}): Promise<DeviceTokenPollResult> {
     if (!deviceCode) throw new RangeError("device_code is required");
-    const result = await this.transport.response("POST", "v1/device/token", {
+    const result = await this.transport.response("POST", "v1/auth/device/token", {
       ...options,
       authenticated: false,
       body: { device_code: deviceCode },
     });
     if (result.ok) {
       const body = objectBody(result.body);
-      if (typeof body?.access_token !== "string" || body.token_type !== "Bearer" || typeof body.device_id !== "string" || !Array.isArray(body.scopes)) {
+      const device = objectBody(body?.device);
+      if (typeof body?.access_token !== "string" || body.token_type !== "Bearer" || body.expires_in !== null || typeof body.scope !== "string" || typeof device?.id !== "string" || !Array.isArray(device.scopes)) {
         throw new RivetplaneProtocolError("Rivetplane API returned an invalid device token response");
       }
       return { status: "approved", ...(result.body as Omit<Extract<DeviceTokenPollResult, { status: "approved" }>, "status">) };
@@ -74,9 +75,9 @@ export class DevicePairing {
 export class ConsumerDevicesResource {
   constructor(private readonly transport: HttpTransport) {}
   list(options: DevicePairingRequestOptions = {}): Promise<ConsumerDevice[]> {
-    return this.transport.request("GET", "v1/controller-devices", options);
+    return this.transport.request("GET", "v1/consumer-devices", options);
   }
   revoke(deviceId: string, options: DevicePairingRequestOptions = {}): Promise<{ revoked: true }> {
-    return this.transport.request("POST", `v1/controller-devices/${encodeURIComponent(deviceId)}/revoke`, options);
+    return this.transport.request("POST", `v1/consumer-devices/${encodeURIComponent(deviceId)}/revoke`, options);
   }
 }
