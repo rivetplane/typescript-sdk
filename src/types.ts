@@ -2,6 +2,35 @@ export type Timestamp = string;
 export type JsonPrimitive = boolean | number | string | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
+export type ConsumerDeviceScope = "sessions:list" | "sessions:read" | "transcripts:read" | "messages:send";
+export interface DeviceAuthorizationInput {
+  device_name: string;
+  device_id: string;
+}
+export interface DeviceAuthorization {
+  device_code: string;
+  user_code: string;
+  verification_uri: string;
+  verification_uri_complete?: string;
+  expires_in: number;
+  interval: number;
+}
+export type DeviceTokenPollResult =
+  | { status: "pending"; interval?: number }
+  | { status: "slow_down"; interval?: number }
+  | { status: "denied" }
+  | { status: "expired" }
+  | { status: "approved"; access_token: string; token_type: "Bearer"; expires_in: null; scope: string; device: ConsumerDevice };
+export interface ConsumerDevice {
+  id: string;
+  device_id: string;
+  name: string;
+  scopes: ConsumerDeviceScope[];
+  created_at: Timestamp;
+  last_used_at: Timestamp | null;
+  revoked_at: Timestamp | null;
+}
+
 export type MachineStatus = "online" | "offline";
 export interface Machine {
   id: string;
